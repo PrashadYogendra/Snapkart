@@ -1,7 +1,7 @@
 'use client'
 import { Apple, Baby, Box, ChevronLeft, ChevronRight, Coffee, Cookie, Flame, Heart, Home, Milk, Wheat } from 'lucide-react'
 import { motion } from 'motion/react'
-import React, { useEffect, useRef, useState } from 'react'
+import React, { use, useEffect, useRef, useState } from 'react'
 
 function CategorySlider() {
   const categories = [
@@ -30,8 +30,32 @@ function CategorySlider() {
           if(!scrollRef.current)return
           const {scrollLeft, scrollWidth, clientWidth} = scrollRef.current
           setShowLeft(scrollLeft>0)
-          setShowRight((scrollLeft+clientWidth)<=scrollWidth-5)
+          setShowRight((scrollLeft+clientWidth)<scrollWidth-5)
         }
+
+
+        useEffect(() => {
+  const autoScroll = setInterval(() => {
+    if (!scrollRef.current) return
+
+    const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current
+
+    if (scrollLeft + clientWidth >= scrollWidth - 5) {
+      scrollRef.current.scrollTo({
+        left: 0,
+        behavior: "smooth",
+      })
+    } else {
+      scrollRef.current.scrollBy({
+        left: 300,
+        behavior: "smooth",
+      })
+    }
+  }, 4000)
+
+  return () => clearInterval(autoScroll)
+}, [])
+
 
         useEffect(()=>{
           scrollRef.current?.addEventListener("scroll",checkScroll)
