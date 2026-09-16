@@ -7,18 +7,14 @@ interface IUser{
     password?:string,
     mobile?:string,
     role:"user" | "admin" | "deliveryBoy",
-    image?:string,
-    
+    image?:string,  
 }
 interface IUserSlice{
     userData:IUser | null
 }
-
-
 const initialState:IUserSlice = {
     userData:null
 }
-
 const userSlice= createSlice({
     name:"user",
     initialState,

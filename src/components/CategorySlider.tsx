@@ -66,7 +66,7 @@ function CategorySlider() {
 
   return (
     <motion.div
-    className='w-[90%] md]w-[80%] mx-auto mt-10 relative'
+    className='w-[90%] md:w-[80%] mx-auto mt-10 relative'
     initial={{ opacity: 0, y: 50 }}
     whileInView={{opacity:1,y:0}}
     transition={{duration:0.6}}
@@ -87,7 +87,7 @@ function CategorySlider() {
               <motion.div
               key={cat.id}
               className={`min-w-[150px] md:min-w-[180px] flex flex-col items-center justify-center
-              rounded-2xl $ {cat.color} shadow-md hover:shadow-xl transition-all cursor-pointer`}
+              rounded-2xl ${cat.color} shadow-md hover:shadow-xl transition-all cursor-pointer`}
               >
                 <div className='flex flex-col items-center justify-center py-5'>
                   <Icon className='w-10 h-10 text-green-700 mb-3'/>

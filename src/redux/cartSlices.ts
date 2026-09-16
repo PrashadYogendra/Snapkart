@@ -1,8 +1,9 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { stat } from "fs";
 import mongoose from "mongoose";
 
 interface IGrocery{
-    _id?:mongoose.Types.ObjectId,
+    _id:mongoose.Types.ObjectId,
     name:string,
     category:string,
     price:number,
@@ -13,12 +14,17 @@ interface IGrocery{
     updatedAt?:Date
 }
 interface ICartSlice{
-    cartData:IGrocery[]
+    cartData:IGrocery[],
+    subTotal:number,
+    deliveryCharges:number,
+    finalTotal:number
 }
 
-
 const initialState:ICartSlice = {
-    cartData:[]
+    cartData:[],
+    subTotal:0,
+    deliveryCharges:40,
+    finalTotal:40
 }
 
 const cartSlice= createSlice({
@@ -27,12 +33,15 @@ const cartSlice= createSlice({
     reducers:{
         addToCart:(state,action:{payload:IGrocery})=>{
             state.cartData.push(action.payload)
+            cartSlice.caseReducers.calculateTotals(state)
         },
         increaseQuantity:(state, action:PayloadAction<mongoose.Types.ObjectId>)=>{
             const item = state.cartData.find((i)=> i._id==action.payload)
             if(item){
                 item.quantity += 1
             }
+                            cartSlice.caseReducers.calculateTotals(state)
+
         },
         decreaseQuantity:(state, action:PayloadAction<mongoose.Types.ObjectId>)=>{
             const item = state.cartData.find((i)=> i._id==action.payload)
@@ -41,9 +50,20 @@ const cartSlice= createSlice({
             }else{
                 state.cartData = state.cartData.filter((i)=> i._id !== action.payload)
             }
+                            cartSlice.caseReducers.calculateTotals(state)
+
+        },
+        removeFromCart:(state, action:PayloadAction<mongoose.Types.ObjectId>)=>{
+            state.cartData = state.cartData.filter((i)=> i._id!== action.payload)
+            cartSlice.caseReducers.calculateTotals(state)
+        },
+        calculateTotals:(state)=>{
+            state.subTotal=state.cartData.reduce((sum,item)=> sum +Number(item.price)*item.quantity,0)
+            state.deliveryCharges=state.subTotal>100?0:40
+            state.finalTotal=state.subTotal+state.deliveryCharges
         }
     }
 })
 
-export const { addToCart, increaseQuantity, decreaseQuantity } = cartSlice.actions
+export const { addToCart, increaseQuantity, decreaseQuantity, removeFromCart, calculateTotals } = cartSlice.actions
 export default cartSlice.reducer
