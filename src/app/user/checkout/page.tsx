@@ -4,12 +4,17 @@ import { LatLngExpression } from "leaflet";
 import {
   ArrowLeft,
   Building,
+  CreditCard,
+  CreditCardIcon,
   Home,
+  Loader2,
+  LocateFixed,
   MapPin,
   Navigation,
   Navigation2,
   Phone,
   Search,
+  Truck,
   User,
 } from "lucide-react";
 import { set } from "mongoose";
@@ -21,6 +26,8 @@ import { useSelector } from "react-redux";
 import "leaflet/dist/leaflet.css";
 import axios from "axios";
 import L from "leaflet"; // "react-leaflet" nahi, "leaflet" se import karein
+import { OpenStreetMapProvider } from "leaflet-geosearch";
+import { input } from "motion/react-client";
 
 const markerIcon = new L.Icon({
   iconUrl: "https://cdn-icons-png.flaticon.com/128/2776/2776067.png",
@@ -30,7 +37,8 @@ const markerIcon = new L.Icon({
 
 function Checkout() {
   const router = useRouter();
-  const { userData } = useSelector((state: RootState) => state.user);
+  const { userData } = useSelector((state: RootState) => state.user)
+  const { subTotal, deliveryCharges, finalTotal }= useSelector((state: RootState) => state.cart)
   const [address, setAddress] = useState({
     fullName: "",
     mobile: "",
@@ -39,7 +47,10 @@ function Checkout() {
     pincode: "",
     fullAddress: "",
   });
-  const [position, setPosition] = useState<[number, number] | null>(null);
+  const [searchLoading,setSearchLoading]=useState(false)
+  const [searchQuery,setSearchQuery]=useState("")
+  const [position, setPosition] = useState<[number, number] | null>(null)
+  const [paymentMethod, setPaymentMethod]=useState<"cod" | "online">("cod")
 
   useEffect(() => {
     if (navigator.geolocation) {
@@ -90,6 +101,18 @@ function Checkout() {
       />
     );
   };
+
+  const handleSearchQuery=async ()=>{
+    setSearchLoading(true)
+    const provider = new OpenStreetMapProvider()
+    const results = await provider.search({ query: searchQuery });
+    if(results){
+      setSearchLoading(false)
+      setPosition([results[0].y,results[0].x])
+    }
+  
+  }
+
       useEffect(() => {
       const fetchAddress = async () => {
         if (!position) return
@@ -112,6 +135,21 @@ function Checkout() {
       fetchAddress();
     }, [position]);
 
+    const handleCurrentLocation=()=>{
+        if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const { latitude, longitude } = pos.coords;
+          setPosition([latitude, longitude]);
+        },
+        (error) => {
+          console.log("geolocation error:", error.message);
+        },
+        { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 },
+      );
+    }}
+
+
   return (
     <div className="w-[92%] md:w-[80%] mx-auto py-10 relative">
       <motion.button
@@ -132,7 +170,7 @@ function Checkout() {
         Checkout
       </motion.h1>
 
-      <div>
+      <div className="grid md:grid-cols-2 gap-8">
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -246,9 +284,11 @@ function Checkout() {
                 placeholder="search city or area..."
                 className="flex-1
                 border rounded-lg p-3 text-sm focus:ring-2 focus:ring-green-500 outline-none"
+                value={searchQuery} onChange={(e)=>setSearchQuery(e.target.value)}
               />
-              <button className="bg-green-600 text-white px-5 rounded-lg hover:bg-green-700 transition-all font-medium">
-                Search
+              <button className="bg-green-600 text-white px-5 rounded-lg hover:bg-green-700 transition-all font-medium"
+              onClick={handleSearchQuery}>
+                {searchLoading?<Loader2 size={16} className="animate-spin"/>:"Search"}
               </button>
             </div>
             <div
@@ -269,8 +309,69 @@ function Checkout() {
                   <DraggableMarker />
                 </MapContainer>
               )}
+              <motion.button 
+              whileTap={{scale:0.93}}
+              className="absolute bottom-4 right-4 bg-green-600 text-white shadow-lg
+              rounded-full p-3 hover:bg-green-700 transition-all flex items-center justify-center z-[999]"
+              onClick={handleCurrentLocation}>
+                <LocateFixed size={22}/>
+
+              </motion.button>
             </div>
           </div>
+        </motion.div>
+
+        <motion.div
+        initial={{ opacity: 0, x: 20 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.3 }}
+        className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 p-6 border
+        border-gray-100 h-fit">
+
+          <h2 className="texl-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
+            <CreditCard className="text-green-600"/>Payment Method</h2>
+            <div className="space-y-4 mb-6">
+
+              <button 
+              onClick={()=>setPaymentMethod("online")}
+              className={`flex items-center gap-3 w-full border rounded-lg p-3 transition-all ${
+                paymentMethod === "online" ? "border-green-600 bg-green-50 shadow-sm" : "hover:bg-gray-50"}`}>
+                  <CreditCardIcon className="text-green-600"/>
+                  <span className="font-medium text-gray-700">Pay Online (stripe)</span>
+                </button>
+
+                <button onClick={()=>setPaymentMethod("cod")}
+                className={`flex items-center gap-3 w-full border rounded-lg p-3 transition-all ${
+                paymentMethod === "cod" ? "border-green-600 bg-green-50 shadow-sm" : "hover:bg-gray-50"}`}>
+                  <Truck className="text-green-600"/>
+                  <span className="font-medium text-gray-700">Cash on Delivery</span>
+                </button>
+            </div>
+        
+        <div className="border-t pt-4 text-gray-700 space-y-2 text-sm sm:text-base">
+          <div className="flex justify-between">
+            <span className="font-semibold">Sub total</span>
+            <span className="font-semibold text-green-700">₹{subTotal}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="font-semibold">Delivery Charges</span>
+            <span className="font-semibold text-green-700">₹{deliveryCharges}</span>
+          </div>
+          <div className="flex justify-between font-bold text-lg border-t pt-3">
+            <span className="font-semibold">Final Total</span>
+            <span className="font-semibold text-green-700">₹{finalTotal}</span>
+          </div>
+        </div>
+        <motion.button whileTap={{scale:0.93}}
+        className="w-full mt-6 bg-green-600 text-white py-3 rounded-full hover:bg-green-700 transition-all
+        font-semibold">
+          {paymentMethod=="cod"?"Place Order" : "Pay & Place Order"}
+
+        </motion.button>
+
+
+
+
         </motion.div>
       </div>
     </div>
