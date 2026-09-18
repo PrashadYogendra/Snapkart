@@ -27,7 +27,7 @@ import "leaflet/dist/leaflet.css";
 import axios from "axios";
 import L from "leaflet"; // "react-leaflet" nahi, "leaflet" se import karein
 import { OpenStreetMapProvider } from "leaflet-geosearch";
-import { input } from "motion/react-client";
+import { image, input } from "motion/react-client";
 
 const markerIcon = new L.Icon({
   iconUrl: "https://cdn-icons-png.flaticon.com/128/2776/2776067.png",
@@ -38,7 +38,7 @@ const markerIcon = new L.Icon({
 function Checkout() {
   const router = useRouter();
   const { userData } = useSelector((state: RootState) => state.user)
-  const { subTotal, deliveryCharges, finalTotal }= useSelector((state: RootState) => state.cart)
+  const { subTotal, deliveryCharges, finalTotal,cartData }= useSelector((state: RootState) => state.cart)
   const [address, setAddress] = useState({
     fullName: "",
     mobile: "",
@@ -135,19 +135,54 @@ function Checkout() {
       fetchAddress();
     }, [position]);
 
-    const handleCurrentLocation=()=>{
-        if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          const { latitude, longitude } = pos.coords;
-          setPosition([latitude, longitude]);
-        },
-        (error) => {
-          console.log("geolocation error:", error.message);
-        },
-        { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 },
-      );
-    }}
+    const handleCod = async () => {
+      if (!position) {
+        return null;
+      }
+      try {
+        const result = await axios.post("/api/user/order", {
+          userId: userData?._id,
+          items: cartData.map((item) => ({
+            grocery: item._id,
+            name: item.name,
+            price: item.price,
+            unit: item.unit,
+            quantity: item.quantity,
+            image: item.image,
+          })),
+          totalAmount: finalTotal,
+          address: {
+            fullName: address.fullName,
+            mobile: address.mobile,
+            city: address.city,
+            state: address.state,
+            fullAddress: address.fullAddress,
+            pincode: address.pincode,
+            latitufe: position[0],
+            longtitude: position[1],
+          },
+          paymentMethod
+        });
+        console.log(result.data)
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    const handleCurrentLocation = () => {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            const { latitude, longitude } = pos.coords;
+            setPosition([latitude, longitude]);
+          },
+          (error) => {
+            console.log("geolocation error:", error.message);
+          },
+          { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 },
+        );
+      }
+    };
 
 
   return (
@@ -364,7 +399,14 @@ function Checkout() {
         </div>
         <motion.button whileTap={{scale:0.93}}
         className="w-full mt-6 bg-green-600 text-white py-3 rounded-full hover:bg-green-700 transition-all
-        font-semibold">
+        font-semibold"
+        onClick={()=>{
+          if(paymentMethod=="cod"){
+            handleCod()
+          }else{
+            null
+          }
+        }}>
           {paymentMethod=="cod"?"Place Order" : "Pay & Place Order"}
 
         </motion.button>
